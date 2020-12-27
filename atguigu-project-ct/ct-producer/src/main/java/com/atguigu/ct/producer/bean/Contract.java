@@ -1,0 +1,47 @@
+package com.atguigu.ct.producer.bean;
+
+import com.atguigu.ct.common.bean.Data;
+
+/**
+ * @author springdu
+ * @create 2020/12/26 10:50
+ * @description 联系人
+ */
+public class Contract extends Data {
+    private String tel;
+    private String name;
+
+    public String getTel() {
+        return tel;
+    }
+
+    public void setTel(String tel) {
+        this.tel = tel;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    @Override
+    public void setValue(Object val) {
+        content = (String) val;
+        String[] values = content.split("\t");
+        setName(values[1]);
+        setTel(values[0]);
+
+    }
+
+    @Override
+    public String toString() {
+//        return "Contract{" +
+//                "tel='" + tel + '\'' +
+//                ", name='" + name + '\'' +
+//                '}';
+         return "Contract["+tel+", "+name+"]";
+    }
+}
