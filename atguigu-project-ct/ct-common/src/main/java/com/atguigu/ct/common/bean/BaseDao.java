@@ -5,6 +5,7 @@ import com.atguigu.ct.common.api.RowKey;
 import com.atguigu.ct.common.api.TableRef;
 import com.atguigu.ct.common.constant.Names;
 import com.atguigu.ct.common.constant.ValueConstant;
+import com.atguigu.ct.common.util.DateUtil;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.*;
@@ -12,6 +13,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 
 /**
@@ -61,10 +63,10 @@ public abstract class BaseDao {
         // 创建表
         createTable(tName, null, families);*/
 
-        createTableXX(tName, null, families);
+        createTableXX(tName, null, null, families);
     }
 
-    protected void createTableXX(String tName, Integer regionCount, String... families) throws Exception {
+    protected void createTableXX(String tName, String coprocessorClass, Integer regionCount, String... families) throws Exception {
         Admin admin = getAdmin();
 
         TableName tableName = TableName.valueOf(tName);
@@ -75,7 +77,7 @@ public abstract class BaseDao {
         }
 
         // 创建表
-        createTable(tName, regionCount, families);
+        createTable(tName, coprocessorClass, regionCount, families);
     }
 
     /**
@@ -84,7 +86,7 @@ public abstract class BaseDao {
      * @param families 列簇
      * @throws Exception
      */
-    private void createTable(String tName, Integer regionCount, String... families) throws Exception {
+    private void createTable(String tName, String coprocessorClass, Integer regionCount, String... families) throws Exception {
         Admin admin = getAdmin();
         TableName tableName = TableName.valueOf(tName);
 
@@ -102,6 +104,11 @@ public abstract class BaseDao {
             tableDescriptor.addFamily(columnDescriptor);
         }
 
+        if (coprocessorClass != null && !"".equals(coprocessorClass)) {
+            tableDescriptor.addCoprocessor(coprocessorClass);
+        }
+
+
         // 增加预分区
         if (regionCount == null || regionCount <= 1) {
             admin.createTable(tableDescriptor);
@@ -113,8 +120,72 @@ public abstract class BaseDao {
 
     }
 
+    /*public static void main(String[] args) {
+        for (String[] startStopRowKey : getStartStopRowKeys("13321312312", "201803", "201808")) {
+
+            *//**
+             * 133_201803 ~ 133_201803|
+             * 133_201804 ~ 133_201804|
+             * 133_201805 ~ 133_201805|
+             * 133_201806 ~ 133_201806|
+             * 133_201807 ~ 133_201807|
+             * 133_201808 ~ 133_201808|
+             *
+             *
+             * 4_13321312312_201803 ~ 4_13321312312_201803|
+             * 5_13321312312_201804 ~ 5_13321312312_201804|
+             * 2_13321312312_201805 ~ 2_13321312312_201805|
+             * 3_13321312312_201806 ~ 3_13321312312_201806|
+             * 2_13321312312_201807 ~ 2_13321312312_201807|
+             * 3_13321312312_201808 ~ 3_13321312312_201808|
+             *
+             *//*
+            System.out.println(startStopRowKey[0] + " ~ " + startStopRowKey[1]);
+        }
+    }*/
+
     /**
-     * 计算分区号
+     * 获取查询时startRow, stopRow集合
+     * @param tel
+     * @param start
+     * @param end
+     * @return
+     */
+    protected List<String[]> getStartStopRowKeys(String tel, String start, String end) {
+        List<String[]> rowKeyss = new ArrayList<>();
+
+        String startTime = start.substring(0, 6);
+        String endTime = end.substring(0, 6);
+
+        Calendar startCal = Calendar.getInstance();
+        startCal.setTime(DateUtil.parse(startTime, "yyyyMM"));
+
+        Calendar endCal = Calendar.getInstance();
+        endCal.setTime(DateUtil.parse(endTime, "yyyyMM"));
+
+        while (startCal.getTimeInMillis() <= endCal.getTimeInMillis()) {
+
+            // 当前时间
+            String nowTime = DateUtil.format(startCal.getTime(), "yyyyMM");
+
+            int regionNum = genRegionNum(tel, nowTime);
+
+            // 1_133_201803 ~ 1_133_201803|
+            String startRow = regionNum + "_" +tel + "_" + nowTime;
+            String stopRow = startRow + "|";
+
+            String[] rowKeys = {startRow, stopRow};
+            rowKeyss.add(rowKeys);
+
+            // 月份+1
+            startCal.add(Calendar.MONTH, 1);
+        }
+
+        return rowKeyss;
+    }
+
+    /**
+     * 计算分区号(0, 1, 2)
      * @param tel
      * @param date
      * @return
@@ -122,7 +193,7 @@ public abstract class BaseDao {
     protected int genRegionNum(String tel, String date) {
 
         // 13301234567
-        String userCode = tel.substring(tel.length() - 4);
+        String userCode = tel.substring(tel.length() - 4); // 拿到电话号码后4位
         // 20181010120000
         String yearMonth = date.substring(0, 6);
 
@@ -167,6 +238,8 @@ public abstract class BaseDao {
 //            System.out.println(splitKey);
             bsList.add(Bytes.toBytes(splitKey));
         }
+
+        // Collections.sort(bsList, new Bytes.ByteArrayComparator());
 
         bsList.toArray(bs);
 
@@ -226,7 +299,26 @@ public abstract class BaseDao {
     }
 
     /**
-     *
+     * 增加多条数据
+     * @param tName
+     * @param puts
+     * @throws Exception
+     */
+    protected void putData(String tName, List<Put> puts) throws Exception {
+
+        // 获取表对象
+        Connection conn = getConnection();
+        Table table = conn.getTable(TableName.valueOf(tName));
+
+        // 增加数据
+        table.put(puts);
+
+        // 关闭表
+        table.close();
+    }
+
+    /**
+     * 增加数据
      * @param tName
      * @param put
      * @throws Exception

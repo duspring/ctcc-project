@@ -54,9 +54,12 @@ public class CallLogConsumer implements Consumer {
                 for (ConsumerRecord<String, String> consumerRecord : consumerRecords) {
                     System.out.println(consumerRecord.value());
                     // 插入数据
-                    // hBaseDao.insertData(consumerRecord.value());
-                    CallLog callLog = new CallLog(consumerRecord.value());
-                    hBaseDao.insertData(callLog);
+                    // 方式一
+                    hBaseDao.insertData(consumerRecord.value());
+
+                    // 方式二
+                    // CallLog callLog = new CallLog(consumerRecord.value());
+                    // hBaseDao.insertData(callLog);
                 }
             }
         } catch (Exception e) {

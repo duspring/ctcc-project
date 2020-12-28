@@ -21,8 +21,18 @@ public class CallLog {
     private String callTime;
     @Column(family = "caller")
     private String duration;
+    @Column(family = "caller")
+    private String flg = "1"; // 默认 1-主叫
 
     private String name;
+
+    public String getFlg() {
+        return flg;
+    }
+
+    public void setFlg(String flg) {
+        this.flg = flg;
+    }
 
     public String getName() {
         return name;

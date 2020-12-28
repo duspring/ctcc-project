@@ -8,6 +8,7 @@
         <outputRelativeToContentRoot value="true" />
         <module name="ct-common" />
         <module name="ct-consumer" />
+        <module name="ct-consumer-coprocessor" />
         <module name="ct-producer" />
       </profile>
     </annotationProcessing>
