@@ -13,6 +13,9 @@
         <module>ct-producer</module>
         <module>ct-consumer</module>
         <module>ct-consumer-coprocessor</module>
+        <module>ct-analysis</module>
+        <module>ct-cache</module>
+        <module>ct-web</module>
     </modules>
 
 
